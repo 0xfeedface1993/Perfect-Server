@@ -23,13 +23,17 @@ import PerfectHTTPServer
 
 // An example request handler.
 // This 'handler' function can be referenced directly in the configuration below.
-func handler(data: [String:Any]) throws -> RequestHandler {
+func allhandler(data: [String:Any]) throws -> RequestHandler {
 	return {
 		request, response in
 		// Respond with a simple message.
 		response.setHeader(.contentType, value: "text/html")
 		response.appendBody(string: "<html><title>Hello, world!</title><body>Hello, world!</body></html>")
 		// Ensure that response.completed() is called when your processing is done.
+        
+//        print(fetchDataByProcedure(name: "proc_moive_get_by_id", args: ["1"], columns: ["title", "id", "page", "images_url", "download_urls_id"]) ?? "error")
+//        print(fetchDataBySQL(statement: "SELECT a.title, a.id, a.page, a.images_id, a.download_urls_id FROM table_movie a WHERE a.id = 1;", columns: ["title", "id", "page", "images_url", "download_urls_id"]) ?? "error")
+//        print(request.params())
 		response.completed()
 	}
 }
@@ -50,7 +54,9 @@ let confData = [
 			"name":"localhost",
 			"port":8181,
 			"routes":[
-				["method":"get", "uri":"/", "handler":handler],
+				["method":"get", "uri":"/", "handler":allhandler],
+				["method":"get", "uri":"/api", "handler":apiSpaHandler],
+                ["method":"post", "uri":"/api", "handler":apiSpaHandler],
 				["method":"get", "uri":"/**", "handler":PerfectHTTPServer.HTTPHandler.staticFiles,
 				 "documentRoot":"./webroot",
 				 "allowResponseFilters":true]
