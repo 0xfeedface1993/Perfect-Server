@@ -51,26 +51,39 @@ func apiSpaHandler(data: [String:Any]) throws -> RequestHandler {
 
 func addMovie(request: HTTPRequest) -> String {
     // {"title":"", "page":"", "pics":["", "", ""], "downloads":["", "", ""]}
-//    if let str = request.postBodyString {
-//        do {
-//            guard let json = try str.jsonDecode() as? [String:Any] else {
-//                return "{\"error\":\"BAD PARAMETER\"}"
-//            }
-//
-//            if let title = json["title"] as? String, let page = json["page"] as? String,
-//                let pics = json["pics"] as? [String], let downloads = json["downloads"] as? [String] {
-//                if let results = fetchDataByProcedure(name: "proc_moive_add", args: [title, page], columns: ["movie_id"]), results.cout > 0, let  {
-//
-//                }
-//
-//                return results?.first?["movie_id"] ?? "{\"error\":\"BAD PARAMETER\"}"
-//            }
-//
-//        }   catch   {
-//            Log.info(message: "error json decoding: \(error)")
-//            print("json decode failed!")
-//        }
-//    }
+    if let str = request.postBodyString {
+        do {
+            guard let json = try str.jsonDecode() as? [String:Any] else {
+                return "{\"error\":\"BAD PARAMETER\"}"
+            }
+            
+            if let title = json["title"] as? String, let page = json["page"] as? String, let pics = json["pics"] as? [String], let downloads = json["downloads"] as? [String] {
+                if let results = fetchDataByProcedure(name: "proc_moive_add", args: ["'\(title)'", "'\(page)'"], columns: ["movie_id"]), results.count > 0, let first = results[0]["movie_id"] as? String {
+                    for item in pics {
+                        if let _ = fetchDataByProcedure(name: "proc_image_add", args:["'\(first)'", "'\(item)'"], columns: ["id"]) {
+                            continue
+                        }
+                        return "{\"error\":\"BAD SAVE\"}"
+                    }
+                    
+                    for item in downloads {
+                        if let _ = fetchDataByProcedure(name: "proc_download_add", args:["'\(item)'", "'\(first)'"], columns: ["id"]) {
+                            continue
+                        }
+                        return "{\"error\":\"BAD SAVE\"}"
+                    }
+                    
+                    return first
+                }
+                
+                return EmptyArrayString
+            }
+            
+        }   catch   {
+            Log.info(message: "error json decoding: \(error)")
+            print("json decode failed!")
+        }
+    }
     return EmptyArrayString
 }
 

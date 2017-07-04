@@ -14,7 +14,7 @@ import PerfectHTTPServer
 let testHost = "127.0.0.1"
 let testUser = "admin"
 let testPassword = "Admin@20170620"
-let testDB = "sex8_data_test"
+let testDB = "sex8_data_test_chi"
 
 func connectDatabase() -> MySQL? {
      // Create an instance of MySQL to work with
@@ -86,7 +86,9 @@ func fetchDataByProcedure(name: String, args: [String], columns: [String]) -> [[
     }
     
     // Save the results to use during this session
-    let results = mysql.storeResults()! //We can implicitly unwrap because of the guard on the querySuccess. You’re welcome to use an if-let here if you like.
+    guard let results = mysql.storeResults() else {
+        return []
+    } //We can implicitly unwrap because of the guard on the querySuccess. You’re welcome to use an if-let here if you like.
     
     var pack = [[String:String?]]()
     
