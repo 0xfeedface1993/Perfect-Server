@@ -49,6 +49,11 @@ func apiSpaHandler(data: [String:Any]) throws -> RequestHandler {
     }
 }
 
+
+/// 添加电影信息
+///
+/// - Parameter request: 包含参数信息（电影、图片、下载地址）
+/// - Returns: 添加成功返回电影id， 否则返回空数组或者error信息
 func addMovie(request: HTTPRequest) -> String {
     // {"title":"", "page":"", "pics":["", "", ""], "downloads":["", "", ""]}
     if let str = request.postBodyString {
@@ -57,25 +62,26 @@ func addMovie(request: HTTPRequest) -> String {
                 return "{\"error\":\"BAD PARAMETER\"}"
             }
             
-            if let title = json["title"] as? String, let page = json["page"] as? String, let pics = json["pics"] as? [String], let downloads = json["downloads"] as? [String] {
-                if let results = fetchDataByProcedure(name: "proc_moive_add", args: ["'\(title)'", "'\(page)'"], columns: ["movie_id"]), results.count > 0, let first = results[0]["movie_id"] as? String {
-                    for item in pics {
-                        if let _ = fetchDataByProcedure(name: "proc_image_add", args:["'\(first)'", "'\(item)'"], columns: ["id"]) {
-                            continue
-                        }
-                        return "{\"error\":\"BAD SAVE\"}"
-                    }
-                    
-                    for item in downloads {
-                        if let _ = fetchDataByProcedure(name: "proc_download_add", args:["'\(item)'", "'\(first)'"], columns: ["id"]) {
-                            continue
-                        }
-                        return "{\"error\":\"BAD SAVE\"}"
-                    }
-                    
-                    return first
+            if let title = json["title"] as? String,
+                let page = json["page"] as? String,
+                let pics = json["pics"] as? [String],
+                let downloads = json["downloads"] as? [String],
+                let results = fetchDataByProcedure(name: "proc_moive_add", args: ["'\(title)'", "'\(page)'"], columns: ["movie_id"]), results.count > 0,
+                let first = results[0]["movie_id"] as? String {
+                let tasks = downloads.map({
+                    item in
+                    return Procedure(name: "proc_download_add", args: ["'\(item)'", "'\(first)'"], colmns:  ["id"])
+                }) + pics.map({
+                    item in
+                    return Procedure(name: "proc_image_add", args: ["'\(first)'", "'\(item)'"], colmns:  ["id"])
+                })
+                
+                guard let _ = updateByProcedures(procedures: tasks) else {
+                    return "{\"error\":\"BAD SAVE\"}"
                 }
                 
+                return first
+            }   else    {
                 return EmptyArrayString
             }
             

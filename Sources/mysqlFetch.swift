@@ -16,6 +16,61 @@ let testUser = "admin"
 let testPassword = "Admin@20170620"
 let testDB = "sex8_data_test_chi"
 
+struct Procedure {
+    var name:String
+    var args:[String]
+    var clomns:[String]
+    init(name: String, args: [String], colmns: [String]) {
+        self.name = name
+        self.args = args
+        self.clomns = colmns
+    }
+}
+
+func updateByProcedures(procedures: [Procedure]) -> String? {
+    
+    //    guard let mysql = connectDatabase() else {
+    //        return nil
+    //    }
+    
+    //Choose the database to work with
+    
+    let mysql = MySQL()
+    
+    let connected = mysql.connect(host: testHost, user: testUser, password: testPassword)
+    
+    guard connected else {
+        // verify we connected successfully
+        print(mysql.errorMessage())
+        Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
+        return nil
+    }
+    
+    defer {
+        mysql.close() //This defer block makes sure we terminate the connection once finished, regardless of the result
+    }
+    
+    guard mysql.selectDatabase(named: testDB) else {
+        Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
+        return nil
+    }
+    
+    for proc in procedures {
+        let statement = "CALL \(proc.name)(\(proc.args.joined(separator: ",")));"
+        print("statement: " + statement)
+        let querySuccess = mysql.query(statement: statement)
+        
+        // make sure the query worked
+        guard querySuccess else {
+            Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
+            print("querySuccess Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
+            return nil
+        }
+    }
+    
+    return "OK"
+}
+
 func connectDatabase() -> MySQL? {
      // Create an instance of MySQL to work with
     let mysql = MySQL()
