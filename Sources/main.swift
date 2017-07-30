@@ -3,7 +3,7 @@
 //  PerfectTemplate
 //
 //  Created by Kyle Jessup on 2015-11-05.
-//	Copyright (C) 2015 PerfectlySoft, Inc.
+//    Copyright (C) 2015 PerfectlySoft, Inc.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -24,18 +24,18 @@ import PerfectHTTPServer
 // An example request handler.
 // This 'handler' function can be referenced directly in the configuration below.
 func allhandler(data: [String:Any]) throws -> RequestHandler {
-	return {
-		request, response in
-		// Respond with a simple message.
-		response.setHeader(.contentType, value: "text/html")
-		response.appendBody(string: "<html><title>Hello, world!</title><body>Hello, world!</body></html>")
-		// Ensure that response.completed() is called when your processing is done.
+    return {
+        request, response in
+        // Respond with a simple message.
+        response.setHeader(.contentType, value: "text/html")
+        response.appendBody(string: "<html><title>Hello, world!</title><body>Hello, world!</body></html>")
+        // Ensure that response.completed() is called when your processing is done.
         
 //        print(fetchDataByProcedure(name: "proc_moive_get_by_id", args: ["1"], columns: ["title", "id", "page", "images_url", "download_urls_id"]) ?? "error")
 //        print(fetchDataBySQL(statement: "SELECT a.title, a.id, a.page, a.images_id, a.download_urls_id FROM table_movie a WHERE a.id = 1;", columns: ["title", "id", "page", "images_url", "download_urls_id"]) ?? "error")
 //        print(request.params())
-		response.completed()
-	}
+        response.completed()
+    }
 }
 
 // Configuration data for an example server.
@@ -44,38 +44,38 @@ func allhandler(data: [String:Any]) throws -> RequestHandler {
 
 
 let confData = [
-	"servers": [
-		// Configuration data for one server which:
-		//	* Serves the hello world message at <host>:<port>/
-		//	* Serves static files out of the "./webroot"
-		//		directory (which must be located in the current working directory).
-		//	* Performs content compression on outgoing data when appropriate.
-		[
-			"name":"localhost",
-			"port":8181,
-			"routes":[
-				["method":"get", "uri":"/", "handler":allhandler],
-				["method":"get", "uri":"/api", "handler":apiSpaHandler],
+    "servers": [
+        // Configuration data for one server which:
+        //    * Serves the hello world message at <host>:<port>/
+        //    * Serves static files out of the "./webroot"
+        //        directory (which must be located in the current working directory).
+        //    * Performs content compression on outgoing data when appropriate.
+        [
+            "name":"localhost",
+            "port":8181,
+            "routes":[
+                ["method":"get", "uri":"/", "handler":allhandler],
+                ["method":"get", "uri":"/api", "handler":apiSpaHandler],
                 ["method":"post", "uri":"/api", "handler":apiSpaHandler],
-				["method":"get", "uri":"/**", "handler":PerfectHTTPServer.HTTPHandler.staticFiles,
-				 "documentRoot":"./webroot",
-				 "allowResponseFilters":true]
-			],
-			"filters":[
-				[
-				"type":"response",
-				"priority":"high",
-				"name":PerfectHTTPServer.HTTPFilter.contentCompression,
-				]
-			]
-		]
-	]
+                ["method":"get", "uri":"/**", "handler":PerfectHTTPServer.HTTPHandler.staticFiles,
+                 "documentRoot":"./webroot",
+                 "allowResponseFilters":true]
+            ],
+            "filters":[
+                [
+                "type":"response",
+                "priority":"high",
+                "name":PerfectHTTPServer.HTTPFilter.contentCompression,
+                ]
+            ]
+        ]
+    ]
 ]
 
 do {
-	// Launch the servers based on the configuration data.
-	try HTTPServer.launch(configurationData: confData)
+    // Launch the servers based on the configuration data.
+    try HTTPServer.launch(configurationData: confData)
 } catch {
-	fatalError("\(error)") // fatal error launching one of the servers
+    fatalError("\(error)") // fatal error launching one of the servers
 }
 

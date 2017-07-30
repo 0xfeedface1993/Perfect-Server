@@ -62,12 +62,36 @@ func addMovie(request: HTTPRequest) -> String {
                 return "{\"error\":\"BAD PARAMETER\"}"
             }
             
+//            for i in 1...10000 {
+//                if let title = json["title"] as? String,
+//                    let page = json["page"] as? String,
+//                    let pics = json["pics"] as? [String],
+//                    let downloads = json["downloads"] as? [String],
+//                    let results = fetchDataByProcedure(name: "proc_moive_add", args: ["'\(title)\(i)'", "'\(page)\(i)'"], columns: ["movie_id"]), results.count > 0,
+//                    let first = results[0]["movie_id"] as? String {
+//
+//                    let tasks = downloads.map({
+//                        item in
+//                        return Procedure(name: "proc_download_add", args: ["'\(item)\(i)'", "'\(first)'"], colmns:  ["id"])
+//                    }) + pics.map({
+//                        item in
+//                        return Procedure(name: "proc_image_add", args: ["'\(first)'", "'\(item)\(i)'"], colmns:  ["id"])
+//                    })
+//
+//                    guard let _ = updateByProcedures(procedures: tasks) else {
+//                        return "{\"error\":\"BAD SAVE\"}"
+//                    }
+//                }   else    {
+//                    return EmptyArrayString
+//                }
+//            }
             if let title = json["title"] as? String,
                 let page = json["page"] as? String,
                 let pics = json["pics"] as? [String],
                 let downloads = json["downloads"] as? [String],
                 let results = fetchDataByProcedure(name: "proc_moive_add", args: ["'\(title)'", "'\(page)'"], columns: ["movie_id"]), results.count > 0,
                 let first = results[0]["movie_id"] as? String {
+                
                 let tasks = downloads.map({
                     item in
                     return Procedure(name: "proc_download_add", args: ["'\(item)'", "'\(first)'"], colmns:  ["id"])

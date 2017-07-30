@@ -28,33 +28,11 @@ struct Procedure {
 }
 
 func updateByProcedures(procedures: [Procedure]) -> String? {
-    
-    //    guard let mysql = connectDatabase() else {
-    //        return nil
-    //    }
+    guard let mysql = connectDatabase() else {
+        return nil
+    }
     
     //Choose the database to work with
-    
-    let mysql = MySQL()
-    
-    let connected = mysql.connect(host: testHost, user: testUser, password: testPassword)
-    
-    guard connected else {
-        // verify we connected successfully
-        print(mysql.errorMessage())
-        Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
-        return nil
-    }
-    
-    defer {
-        mysql.close() //This defer block makes sure we terminate the connection once finished, regardless of the result
-    }
-    
-    guard mysql.selectDatabase(named: testDB) else {
-        Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
-        return nil
-    }
-    
     for proc in procedures {
         let statement = "CALL \(proc.name)(\(proc.args.joined(separator: ",")));"
         print("statement: " + statement)
@@ -71,27 +49,19 @@ func updateByProcedures(procedures: [Procedure]) -> String? {
     return "OK"
 }
 
+
+/// 链接数据库
+///
+/// - Returns: 数据库实例，链接失败返回nil
 func connectDatabase() -> MySQL? {
      // Create an instance of MySQL to work with
     let mysql = MySQL()
-    
-    let connected = mysql.connect(host: testHost, user: testUser, password: testPassword)
-    
+    let connected = mysql.connect(host: testHost, user: testUser, password: testPassword, db: testDB, port: 3306)
     guard connected else {
         // verify we connected successfully
         print(mysql.errorMessage())
         return nil
     }
-    
-    defer {
-        mysql.close() //This defer block makes sure we terminate the connection once finished, regardless of the result
-    }
-    
-    guard mysql.selectDatabase(named: testDB) else {
-        Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
-        return nil
-    }
-    
     return mysql
 }
 
@@ -104,32 +74,11 @@ func connectDatabase() -> MySQL? {
 /// - Returns: 返回包含columns指定的列名的数组，数组元素是字典，根据列明取值，值可能是nil；
 ///            返回nil，说明执行存过出错
 func fetchDataByProcedure(name: String, args: [String], columns: [String]) -> [[String:String?]]? {
-    
-//    guard let mysql = connectDatabase() else {
-//        return nil
-//    }
+    guard let mysql = connectDatabase() else {
+        return nil
+    }
     
     //Choose the database to work with
-    
-    let mysql = MySQL()
-    
-    let connected = mysql.connect(host: testHost, user: testUser, password: testPassword)
-    
-    guard connected else {
-        // verify we connected successfully
-        print(mysql.errorMessage())
-        return nil
-    }
-    
-    defer {
-        mysql.close() //This defer block makes sure we terminate the connection once finished, regardless of the result
-    }
-    
-    guard mysql.selectDatabase(named: testDB) else {
-        Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
-        return nil
-    }
-    
     let statement = "CALL \(name)(\(args.joined(separator: ",")));"
     print("statement: " + statement)
     let querySuccess = mysql.query(statement: statement)
@@ -159,26 +108,7 @@ func fetchDataByProcedure(name: String, args: [String], columns: [String]) -> [[
 }
 
 func fetchDataBySQL(statement: String, columns: [String]) -> [[String:String?]]? {
-    
-//    guard let mysql = connectDatabase() else {
-//        return nil
-//    }
-    let mysql = MySQL()
-    
-    let connected = mysql.connect(host: testHost, user: testUser, password: testPassword)
-    
-    guard connected else {
-        // verify we connected successfully
-        print(mysql.errorMessage())
-        return nil
-    }
-    
-    defer {
-        mysql.close() //This defer block makes sure we terminate the connection once finished, regardless of the result
-    }
-    
-    guard mysql.selectDatabase(named: testDB) else {
-        Log.info(message: "Failure: \(mysql.errorCode()) \(mysql.errorMessage())")
+    guard let mysql = connectDatabase() else {
         return nil
     }
     
