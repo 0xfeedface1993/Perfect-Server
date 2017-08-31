@@ -79,7 +79,7 @@ func fetchDataByProcedure(name: String, args: [String], columns: [String]) -> [[
     }
     
     //Choose the database to work with
-    let statement = "CALL \(name)(\(args.joined(separator: ",")));"
+    let statement = "CALL \(name)(\(args.map({ "'\($0)'" }).joined(separator: ",")));"
     print("statement: " + statement)
     let querySuccess = mysql.query(statement: statement)
     

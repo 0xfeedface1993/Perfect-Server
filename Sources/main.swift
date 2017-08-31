@@ -20,6 +20,7 @@
 import PerfectLib
 import PerfectHTTP
 import PerfectHTTPServer
+import PerfectSessionMySQL
 
 // An example request handler.
 // This 'handler' function can be referenced directly in the configuration below.
@@ -41,7 +42,6 @@ func allhandler(data: [String:Any]) throws -> RequestHandler {
 // Configuration data for an example server.
 // This example configuration shows how to launch a server
 // using a configuration dictionary.
-
 
 let confData = [
     "servers": [
@@ -74,7 +74,22 @@ let confData = [
 
 do {
     // Launch the servers based on the configuration data.
-    try HTTPServer.launch(configurationData: confData)
+//    Log.info(message: "MD5: \("123".md5()) SHA256:\("123".sha256())")
+    let server = HTTPServer()
+    server.serverName = "localhost"
+    server.serverPort = 8181
+    var routes = Routes()
+    routes.add(method: .get, uri: "/api", handler: try apiSpaHandler())
+    routes.add(method: .post, uri: "/api", handler: try apiSpaHandler())
+    routes.add(method: .get, uri: "/", handler: try allhandler(data: [:]))
+    routes.add(method: .get, uri: "/", handler: try PerfectHTTPServer.HTTPHandler.staticFiles(data: [:]))
+    server.addRoutes(routes)
+    server.documentRoot = "./webroot"
+    let sessionDriver = SessionMySQLDriver()
+    server.setRequestFilters([sessionDriver.requestFilter])
+    server.setResponseFilters([sessionDriver.responseFilter])
+    try server.start()
+//    try HTTPServer.launch(configurationData: confData)
 } catch {
     fatalError("\(error)") // fatal error launching one of the servers
 }

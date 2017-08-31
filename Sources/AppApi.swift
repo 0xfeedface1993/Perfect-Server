@@ -9,6 +9,7 @@
 import PerfectLib
 import PerfectHTTP
 import PerfectHTTPServer
+import PerfectSessionMySQL
 
 enum ErrorCode : Int {
     case jsonEcoding = 0x1
@@ -16,7 +17,7 @@ enum ErrorCode : Int {
 
 let EmptyArrayString = "[]"
 
-func apiSpaHandler(data: [String:Any]) throws -> RequestHandler {
+func apiSpaHandler() throws -> RequestHandler {
     return {
         request, response in
         // Respond with a simple message.
@@ -38,6 +39,12 @@ func apiSpaHandler(data: [String:Any]) throws -> RequestHandler {
                 break
             case "getMovies"://localhost:8181/api?method=getMovies
                 response.appendBody(string: getMovies())
+                break
+            case "registerAccount":
+                response.appendBody(string: register(request: request))
+                break
+            case "login":
+                response.appendBody(string: login(request: request))
                 break
             default:
                 response.appendBody(string: "<html><title>Hello, world!</title><body>Hello, world!</body></html>")
@@ -61,30 +68,6 @@ func addMovie(request: HTTPRequest) -> String {
             guard let json = try str.jsonDecode() as? [String:Any] else {
                 return "{\"error\":\"BAD PARAMETER\"}"
             }
-            
-//            for i in 1...10000 {
-//                if let title = json["title"] as? String,
-//                    let page = json["page"] as? String,
-//                    let pics = json["pics"] as? [String],
-//                    let downloads = json["downloads"] as? [String],
-//                    let results = fetchDataByProcedure(name: "proc_moive_add", args: ["'\(title)\(i)'", "'\(page)\(i)'"], columns: ["movie_id"]), results.count > 0,
-//                    let first = results[0]["movie_id"] as? String {
-//
-//                    let tasks = downloads.map({
-//                        item in
-//                        return Procedure(name: "proc_download_add", args: ["'\(item)\(i)'", "'\(first)'"], colmns:  ["id"])
-//                    }) + pics.map({
-//                        item in
-//                        return Procedure(name: "proc_image_add", args: ["'\(first)'", "'\(item)\(i)'"], colmns:  ["id"])
-//                    })
-//
-//                    guard let _ = updateByProcedures(procedures: tasks) else {
-//                        return "{\"error\":\"BAD SAVE\"}"
-//                    }
-//                }   else    {
-//                    return EmptyArrayString
-//                }
-//            }
             if let title = json["title"] as? String,
                 let page = json["page"] as? String,
                 let pics = json["pics"] as? [String],
@@ -178,6 +161,51 @@ func getLinksByID(request: HTTPRequest) -> String {
         do {
             let json = try movie.jsonEncodedString()
             return json
+        } catch {
+            print("error json edncoding: \(error)")
+            Log.info(message: "error json edncoding: \(error)")
+            return "server error code: \(ErrorCode.jsonEcoding.rawValue)"
+        }
+    }
+    return EmptyArrayString
+}
+
+
+/// 注册账号
+///
+/// - Parameter request: 包含参数信息
+/// - Returns: 包含注册成功账号字符串
+func register(request: HTTPRequest) -> String {
+    if let account = request.param(name: "account"), let pwd = request.param(name: "password"), let base64 = [UInt8](randomCount: 64).encode(.base64), let randomNumberBase64Str = String(validatingUTF8: base64) {
+        let users = fetchDataByProcedure(name: "proc_account_add", args: [account, (pwd + randomNumberBase64Str).sha256(), randomNumberBase64Str], columns: ["user_id"]) ?? []
+        do {
+            let json = try users.jsonEncodedString()
+            return json
+        } catch {
+            print("error json edncoding: \(error)")
+            Log.info(message: "error json edncoding: \(error)")
+            return "server error code: \(ErrorCode.jsonEcoding.rawValue)"
+        }
+    }
+    return EmptyArrayString
+}
+
+
+/// 登录
+///
+/// - Parameter request: 包含参数信息
+/// - Returns: 包含登录结果字符串
+func login(request: HTTPRequest) -> String {
+    if let account = request.param(name: "account"), let pwd = request.param(name: "password") {
+        let info = fetchDataByProcedure(name: "proc_login", args: [account], columns: ["passwod", "salt"]) ?? []
+        do {
+            for data in info {
+                if let passwod = data["passwod"], let salt = data["salt"] as? String, (pwd + salt).sha256() == passwod {
+                    Log.info(message: request.session?.token ?? "")
+                    return try [["info":account]].jsonEncodedString()
+                }
+            }
+            return try [["info":"账号或密码不正确"]].jsonEncodedString()
         } catch {
             print("error json edncoding: \(error)")
             Log.info(message: "error json edncoding: \(error)")
