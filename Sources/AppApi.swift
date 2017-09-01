@@ -46,6 +46,9 @@ func apiSpaHandler() throws -> RequestHandler {
             case "login":
                 response.appendBody(string: login(request: request))
                 break
+            case "loginOut":
+                response.appendBody(string: loginOut(request: request))
+                break
             default:
                 response.appendBody(string: "<html><title>Hello, world!</title><body>Hello, world!</body></html>")
                 break
@@ -62,8 +65,11 @@ func apiSpaHandler() throws -> RequestHandler {
 /// - Parameter request: 包含参数信息（电影、图片、下载地址）
 /// - Returns: 添加成功返回电影id， 否则返回空数组或者error信息
 func addMovie(request: HTTPRequest) -> String {
+    guard checkLoginSession(request: request) else {
+        return EmptyArrayString
+    }
     // {"title":"", "page":"", "pics":["", "", ""], "downloads":["", "", ""]}
-    if let str = request.postBodyString {
+    if let str = request.postBodyString, let userid = request.session?.userid {
         do {
             guard let json = try str.jsonDecode() as? [String:Any] else {
                 return "{\"error\":\"BAD PARAMETER\"}"
@@ -72,7 +78,7 @@ func addMovie(request: HTTPRequest) -> String {
                 let page = json["page"] as? String,
                 let pics = json["pics"] as? [String],
                 let downloads = json["downloads"] as? [String],
-                let results = fetchDataByProcedure(name: "proc_moive_add", args: ["'\(title)'", "'\(page)'"], columns: ["movie_id"]), results.count > 0,
+                let results = fetchDataByProcedure(name: "proc_moive_add", args: ["\(title)", "\(page)", "\(userid)"], columns: ["movie_id"]), results.count > 0,
                 let first = results[0]["movie_id"] as? String {
                 
                 let tasks = downloads.map({
@@ -101,9 +107,13 @@ func addMovie(request: HTTPRequest) -> String {
 }
 
 func getMovieByID(request: HTTPRequest) -> String {
+    guard checkLoginSession(request: request) else {
+        return EmptyArrayString
+    }
     if let args = request.param(name: "id")?.characters.split(separator: "|").map({String($0)}) {
         let movie = fetchDataByProcedure(name: "proc_moive_get_by_id", args: args, columns: ["title", "id", "page"]) ?? []
         do {
+//            Log.info(message: request.session?.userid ?? "")
             let json = try movie.jsonEncodedString()
             return json
         } catch {
@@ -137,6 +147,9 @@ func getMovies() -> String {
 /// - Parameter request: 包含参数信息
 /// - Returns: 图片数据json字符串
 func getImagesByID(request: HTTPRequest) -> String {
+    guard checkLoginSession(request: request) else {
+        return EmptyArrayString
+    }
     if let args = request.param(name: "id") {
         let movie = fetchDataByProcedure(name: "proc_image_get_by_movie_id", args: [args], columns: ["id", "image_url", "create_time"]) ?? []
         do {
@@ -156,6 +169,9 @@ func getImagesByID(request: HTTPRequest) -> String {
 /// - Parameter request: 包含参数信息
 /// - Returns: 下载链接json字符串
 func getLinksByID(request: HTTPRequest) -> String {
+    guard checkLoginSession(request: request) else {
+        return EmptyArrayString
+    }
     if let args = request.param(name: "id") {
         let movie = fetchDataByProcedure(name: "proc_download_get_by_movie_id", args: [args], columns: ["id", "url", "create_time"]) ?? []
         do {
@@ -201,7 +217,7 @@ func login(request: HTTPRequest) -> String {
         do {
             for data in info {
                 if let passwod = data["passwod"], let salt = data["salt"] as? String, (pwd + salt).sha256() == passwod {
-                    Log.info(message: request.session?.token ?? "")
+                    request.session?.userid = account
                     return try [["info":account]].jsonEncodedString()
                 }
             }
@@ -213,4 +229,40 @@ func login(request: HTTPRequest) -> String {
         }
     }
     return EmptyArrayString
+}
+
+
+/// 退出登录
+///
+/// - Parameter request: 包含账户信息
+/// - Returns: 退出登录成功则返回 code 200
+func loginOut(request: HTTPRequest) -> String {
+    if let account = request.param(name: "account"), let userid = request.session?.userid, userid == account {
+        do {
+            request.session?.userid = ""
+            return try [["info":"退出登录成功", "code":"200"]].jsonEncodedString()
+        } catch {
+            print("error json edncoding: \(error)")
+            Log.info(message: "error json edncoding: \(error)")
+            return "server error code: \(ErrorCode.jsonEcoding.rawValue)"
+        }
+    }
+    return EmptyArrayString
+}
+
+
+/// 检查session
+///
+/// - Parameter request: 包含session请求
+/// - Returns: 已登录为true，否则为false
+func checkLoginSession(request: HTTPRequest) -> Bool {
+    if let session = request.session {
+        let info = fetchDataByProcedure(name: "proc_account_validate", args: [session.userid], columns: ["state"]) ?? []
+        for data in info {
+            if let state = data["state"] as? String {
+                return state == "\u{01}"
+            }
+        }
+    }
+    return false
 }
