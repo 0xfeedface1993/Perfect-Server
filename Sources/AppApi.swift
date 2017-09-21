@@ -13,9 +13,10 @@ import PerfectSessionMySQL
 
 enum ErrorCode : Int {
     case jsonEcoding = 0x1
+    case invalidateAuthrithe = 0x2
 }
 
-let EmptyArrayString = "[]"
+let EmptyArrayString = "{\"info\":\"sorry, no data\", \"code\":\"200\"}"
 
 func apiSpaHandler() throws -> RequestHandler {
     return {
@@ -213,19 +214,20 @@ func register(request: HTTPRequest) -> String {
 /// - Returns: 包含登录结果字符串
 func login(request: HTTPRequest) -> String {
     if let account = request.param(name: "account"), let pwd = request.param(name: "password") {
-        let info = fetchDataByProcedure(name: "proc_login", args: [account], columns: ["passwod", "salt"]) ?? []
+        let info = fetchDataByProcedure(name: "proc_login", args: [account], columns: ["passwod", "salt", "name"]) ?? []
         do {
             for data in info {
-                if let passwod = data["passwod"], let salt = data["salt"] as? String, (pwd + salt).sha256() == passwod {
+                if let passwod = data["passwod"] as? String, let salt = data["salt"] as? String, let name = data["name"], (pwd + salt).sha256() == passwod {
+//                    Log.info(message: "pwd: \(pwd) \nsalt: \(salt) \n caculateSha256: \((pwd + salt).sha256()) \nsave: \(passwod)")
                     request.session?.userid = account
-                    return try [["info":account]].jsonEncodedString()
+                    return try ["id":account, "name":name, "info":"人生得意须尽欢"].jsonEncodedString()
                 }
             }
-            return try [["info":"账号或密码不正确"]].jsonEncodedString()
+            return errorMaker(code: .invalidateAuthrithe, info: "账号或密码不正确")
         } catch {
             print("error json edncoding: \(error)")
             Log.info(message: "error json edncoding: \(error)")
-            return "server error code: \(ErrorCode.jsonEcoding.rawValue)"
+            return errorMaker(code: .jsonEcoding, info: error.localizedDescription)
         }
     }
     return EmptyArrayString
@@ -265,4 +267,8 @@ func checkLoginSession(request: HTTPRequest) -> Bool {
         }
     }
     return false
+}
+
+func errorMaker(code: ErrorCode, info: String) -> String {
+    return try! ["info":info, "code":code.rawValue].jsonEncodedString()
 }
