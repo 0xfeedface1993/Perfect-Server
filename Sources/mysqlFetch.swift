@@ -46,7 +46,7 @@ func updateByProcedures(procedures: [Procedure]) -> String? {
         }
     }
     
-    return "OK"
+    return EmptyArrayString
 }
 
 

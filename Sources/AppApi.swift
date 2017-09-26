@@ -14,6 +14,8 @@ import PerfectSessionMySQL
 enum ErrorCode : Int {
     case jsonEcoding = 0x1
     case invalidateAuthrithe = 0x2
+    case invalidateParameter = 0x3
+    case serverError = 0x4
 }
 
 let EmptyArrayString = "{\"info\":\"sorry, no data\", \"code\":\"200\"}"
@@ -73,7 +75,7 @@ func addMovie(request: HTTPRequest) -> String {
     if let str = request.postBodyString, let userid = request.session?.userid {
         do {
             guard let json = try str.jsonDecode() as? [String:Any] else {
-                return "{\"error\":\"BAD PARAMETER\"}"
+                return errorMaker(code: .invalidateParameter, info: "您的参数有误")
             }
             if let title = json["title"] as? String,
                 let page = json["page"] as? String,
@@ -90,11 +92,9 @@ func addMovie(request: HTTPRequest) -> String {
                     return Procedure(name: "proc_image_add", args: ["'\(first)'", "'\(item)'"], colmns:  ["id"])
                 })
                 
-                guard let _ = updateByProcedures(procedures: tasks) else {
-                    return "{\"error\":\"BAD SAVE\"}"
-                }
+                let _ = updateByProcedures(procedures: tasks)
                 
-                return first
+                return try! ["movieID":first].jsonEncodedString()
             }   else    {
                 return EmptyArrayString
             }
@@ -102,6 +102,7 @@ func addMovie(request: HTTPRequest) -> String {
         }   catch   {
             Log.info(message: "error json decoding: \(error)")
             print("json decode failed!")
+            return errorMaker(code: .jsonEcoding, info: error.localizedDescription)
         }
     }
     return EmptyArrayString
