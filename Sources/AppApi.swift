@@ -113,7 +113,7 @@ func getMovieByID(request: HTTPRequest) -> String {
         return EmptyArrayString
     }
     if let args = request.param(name: "id")?.characters.split(separator: "|").map({String($0)}) {
-        let movie = fetchDataByProcedure(name: "proc_moive_get_by_id", args: args, columns: ["title", "id", "page"]) ?? []
+        let movie = fetchDataByProcedure(name: "proc_moive_get_by_id", args: args, columns: ["id", "title", "page"]) ?? []
         do {
 //            Log.info(message: request.session?.userid ?? "")
             let json = try movie.jsonEncodedString()
