@@ -72,6 +72,7 @@ func addMovie(request: HTTPRequest) -> String {
         return EmptyArrayString
     }
     // {"title":"", "page":"", "pics":["", "", ""], "downloads":["", "", ""]}
+    //  IN p_msk varchar(20),  IN p_movie_time varchar(20),  IN p_formart varchar(20),  IN p_size varchar(20)
     if let str = request.postBodyString, let userid = request.session?.userid {
         do {
             guard let json = try str.jsonDecode() as? [String:Any] else {
@@ -80,8 +81,12 @@ func addMovie(request: HTTPRequest) -> String {
             if let title = json["title"] as? String,
                 let page = json["page"] as? String,
                 let pics = json["pics"] as? [String],
+                let msk = json["msk"] as? String,
+                let time = json["time"] as? String,
+                let format = json["format"] as? String,
+                let size = json["size"] as? String,
                 let downloads = json["downloads"] as? [String],
-                let results = fetchDataByProcedure(name: "proc_moive_add", args: ["\(title)", "\(page)", "\(userid)"], columns: ["movie_id"]), results.count > 0,
+                let results = fetchDataByProcedure(name: "proc_moive_add", args: ["\(title)", "\(page)", "\(userid)", msk, time, format, size], columns: ["movie_id"]), results.count > 0,
                 let first = results[0]["movie_id"] as? String {
                 
                 let tasks = downloads.map({
@@ -113,7 +118,7 @@ func getMovieByID(request: HTTPRequest) -> String {
         return EmptyArrayString
     }
     if let args = request.param(name: "id")?.characters.split(separator: "|").map({String($0)}) {
-        let movie = fetchDataByProcedure(name: "proc_moive_get_by_id", args: args, columns: ["id", "title", "page"]) ?? []
+        let movie = fetchDataByProcedure(name: "proc_moive_get_by_id", args: args, columns: ["id", "title", "page", "msk", "time", "format", "size"]) ?? []
         do {
 //            Log.info(message: request.session?.userid ?? "")
             let json = try movie.jsonEncodedString()
