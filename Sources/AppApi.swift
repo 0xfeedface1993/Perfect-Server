@@ -41,7 +41,7 @@ func apiSpaHandler() throws -> RequestHandler {
                 response.appendBody(string: getLinksByID(request: request))
                 break
             case "getMovies"://localhost:8181/api?method=getMovies
-                response.appendBody(string: getMovies())
+                response.appendBody(string: getMovies(request: request))
                 break
             case "registerAccount":
                 response.appendBody(string: register(request: request))
@@ -85,8 +85,9 @@ func addMovie(request: HTTPRequest) -> String {
                 let time = json["time"] as? String,
                 let format = json["format"] as? String,
                 let size = json["size"] as? String,
+                let site = json["site"] as? String,
                 let downloads = json["downloads"] as? [String],
-                let results = fetchDataByProcedure(name: "proc_moive_add", args: ["\(title)", "\(page)", "\(userid)", msk, time, format, size], columns: ["movie_id"]), results.count > 0,
+                let results = fetchDataByProcedure(name: "proc_moive_add", args: ["\(title)", "\(page)", "\(userid)", msk, time, format, size, site], columns: ["movie_id"]), results.count > 0,
                 let first = results[0]["movie_id"] as? String {
                 
                 let tasks = downloads.map({
@@ -118,7 +119,7 @@ func getMovieByID(request: HTTPRequest) -> String {
         return EmptyArrayString
     }
     if let args = request.param(name: "id")?.characters.split(separator: "|").map({String($0)}) {
-        let movie = fetchDataByProcedure(name: "proc_moive_get_by_id", args: args, columns: ["id", "title", "page", "msk", "time", "format", "size"]) ?? []
+        let movie = fetchDataByProcedure(name: "proc_moive_get_by_id", args: args, columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id"]) ?? []
         do {
 //            Log.info(message: request.session?.userid ?? "")
             let json = try movie.jsonEncodedString()
@@ -135,16 +136,32 @@ func getMovieByID(request: HTTPRequest) -> String {
 /// 获取电影列表
 ///
 /// - Returns: json数组
-func getMovies() -> String {
-    let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [], columns: ["title", "page", "id", "create_time"]) ?? [] ////a.title, a.page, a.id, a.create_time
-    do {
-        let json = try movie.jsonEncodedString()
-        return json
-    } catch {
-        print("error json edncoding: \(error)")
-        Log.info(message: "error json edncoding: \(error)")
-//        return "server error code: \(ErrorCode.jsonEcoding.rawValue)"
+func getMovies(request: HTTPRequest) -> String {
+    guard checkLoginSession(request: request) else {
         return EmptyArrayString
+    }
+    
+    do {
+        guard let json = try request.postBodyString?.jsonDecode() as? [String:Any] else {
+            return errorMaker(code: .invalidateParameter, info: "您的参数有误")
+        }
+        if let site = json["site"] as? String, let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [site, request.session!.userid], columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id"]) {
+            do {
+                let json = try movie.jsonEncodedString()
+                return json
+            } catch {
+                print("error json edncoding: \(error)")
+                Log.info(message: "error json edncoding: \(error)")
+                //        return "server error code: \(ErrorCode.jsonEcoding.rawValue)"
+                return EmptyArrayString
+            }
+        }   else    {
+            return EmptyArrayString
+        }
+    }   catch   {
+        Log.info(message: "error json decoding: \(error)")
+        print("json decode failed!")
+        return errorMaker(code: .jsonEcoding, info: error.localizedDescription)
     }
 }
 
