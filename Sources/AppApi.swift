@@ -145,10 +145,13 @@ func getMovies(request: HTTPRequest) -> String {
         guard let json = try request.postBodyString?.jsonDecode() as? [String:Any] else {
             return errorMaker(code: .invalidateParameter, info: "您的参数有误")
         }
+        var allPages = "0";
         if let site = json["site"] as? String, let start = Int(json["startPage"] as? String ?? "0"), let rows = Int(json["rows"] as? String ?? "1"),
-        let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [site, request.session!.userid, "\(start * rows > 0 ? start * rows:0)", "\(rows)"], columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id"]) {
+        let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [site, request.session!.userid, "\(start * rows > 0 ? start * rows:0)", "\(rows)"], columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id", "all_pages"]) {
             let packageMovies = movie.map({ (mov) -> [String : Any] in
                 var item = mov as [String:Any]
+                allPages = item["all_pages"] as? String ?? "0"
+                item.removeValue(forKey: "all_pages")
                 if let id = mov["movie_id"] {
                     item["pics"] = fetchDataByProcedure(name: "proc_image_get_by_movie_id", args: [id], columns: ["id", "image_url", "create_time"]) ?? []
                     item["links"] = fetchDataByProcedure(name: "proc_download_get_by_movie_id", args: [id], columns: ["id", "url", "create_time"]) ?? []
@@ -156,9 +159,13 @@ func getMovies(request: HTTPRequest) -> String {
                 return item
             })
             
+            var results = [String:Any]()
+            results["all_pages"] = allPages
+            results["page_number"] = "\(start)"
+            results["movies"] = packageMovies
             
             do {
-                let json = try packageMovies.jsonEncodedString()
+                let json = try results.jsonEncodedString()
                 return json
             } catch {
                 print("error json edncoding: \(error)")
