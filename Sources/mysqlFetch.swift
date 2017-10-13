@@ -73,7 +73,7 @@ func connectDatabase() -> MySQL? {
 ///   - columns: 返回值需要的列名，按结果集的列名顺序
 /// - Returns: 返回包含columns指定的列名的数组，数组元素是字典，根据列明取值，值可能是nil；
 ///            返回nil，说明执行存过出错
-func fetchDataByProcedure(name: String, args: [String], columns: [String]) -> [[String:String?]]? {
+func fetchDataByProcedure(name: String, args: [String], columns: [String]) -> [[String:String]]? {
     guard let mysql = connectDatabase() else {
         return nil
     }
@@ -94,10 +94,10 @@ func fetchDataByProcedure(name: String, args: [String], columns: [String]) -> [[
         return []
     } //We can implicitly unwrap because of the guard on the querySuccess. You’re welcome to use an if-let here if you like.
     
-    var pack = [[String:String?]]()
+    var pack = [[String:String]]()
     
     results.forEachRow { row in
-        var land = [String:String?]()
+        var land = [String:String]()
         for (index, key) in columns.enumerated() {
             land[key] = row[index] ?? ""
         }

@@ -88,7 +88,7 @@ func addMovie(request: HTTPRequest) -> String {
                 let site = json["site"] as? String,
                 let downloads = json["downloads"] as? [String],
                 let results = fetchDataByProcedure(name: "proc_moive_add", args: ["\(title)", "\(page)", "\(userid)", msk, time, format, size, site], columns: ["movie_id"]), results.count > 0,
-                let first = results[0]["movie_id"] as? String {
+                let first = results[0]["movie_id"] {
                 
                 let tasks = downloads.map({
                     item in
@@ -145,9 +145,20 @@ func getMovies(request: HTTPRequest) -> String {
         guard let json = try request.postBodyString?.jsonDecode() as? [String:Any] else {
             return errorMaker(code: .invalidateParameter, info: "您的参数有误")
         }
-        if let site = json["site"] as? String, let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [site, request.session!.userid], columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id"]) {
+        if let site = json["site"] as? String, let start = Int(json["startPage"] as? String ?? "0"), let rows = Int(json["rows"] as? String ?? "1"),
+        let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [site, request.session!.userid, "\(start * rows > 0 ? start * rows:0)", "\(rows)"], columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id"]) {
+            let packageMovies = movie.map({ (mov) -> [String : Any] in
+                var item = mov as [String:Any]
+                if let id = mov["movie_id"] {
+                    item["pics"] = fetchDataByProcedure(name: "proc_image_get_by_movie_id", args: [id], columns: ["id", "image_url", "create_time"]) ?? []
+                    item["links"] = fetchDataByProcedure(name: "proc_download_get_by_movie_id", args: [id], columns: ["id", "url", "create_time"]) ?? []
+                }
+                return item
+            })
+            
+            
             do {
-                let json = try movie.jsonEncodedString()
+                let json = try packageMovies.jsonEncodedString()
                 return json
             } catch {
                 print("error json edncoding: \(error)")
@@ -240,7 +251,7 @@ func login(request: HTTPRequest) -> String {
         let info = fetchDataByProcedure(name: "proc_login", args: [account], columns: ["passwod", "salt", "name"]) ?? []
         do {
             for data in info {
-                if let passwod = data["passwod"] as? String, let salt = data["salt"] as? String, let name = data["name"], (pwd + salt).sha256() == passwod {
+                if let passwod = data["passwod"], let salt = data["salt"], let name = data["name"], (pwd + salt).sha256() == passwod {
 //                    Log.info(message: "pwd: \(pwd) \nsalt: \(salt) \n caculateSha256: \((pwd + salt).sha256()) \nsave: \(passwod)")
                     request.session?.userid = account
                     return try ["id":account, "name":name, "info":"人生得意须尽欢"].jsonEncodedString()
@@ -284,7 +295,7 @@ func checkLoginSession(request: HTTPRequest) -> Bool {
     if let session = request.session {
         let info = fetchDataByProcedure(name: "proc_account_validate", args: [session.userid], columns: ["state"]) ?? []
         for data in info {
-            if let state = data["state"] as? String {
+            if let state = data["state"] {
                 return state == "\u{01}"
             }
         }
