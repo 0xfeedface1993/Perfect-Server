@@ -147,7 +147,7 @@ func getMovies(request: HTTPRequest) -> String {
         }
         var allPages = "0";
         if let site = json["site"] as? String, let start = Int(json["startPage"] as? String ?? "0"), let rows = Int(json["rows"] as? String ?? "1"),
-        let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [site, request.session!.userid, "\(start * rows > 0 ? start * rows:0)", "\(rows)"], columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id", "all_pages"]) {
+        let movie = fetchDataByProcedure(name: "proc_movie_get_all", args: [site, request.session!.userid, "\(start * rows > 0 ? start * rows:0)", "\(rows)"], columns: ["movie_id", "title", "page", "msk", "movie_time", "formart", "size", "site_id", "all_pages", "description"]) {
             let packageMovies = movie.map({ (mov) -> [String : Any] in
                 var item = mov as [String:Any]
                 allPages = item["all_pages"] as? String ?? "0"
