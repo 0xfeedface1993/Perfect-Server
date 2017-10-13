@@ -160,7 +160,7 @@ func getMovies(request: HTTPRequest) -> String {
             })
             
             var results = [String:Any]()
-            results["all_pages"] = allPages
+            results["all_pages"] = Int(allPages)! > rows ? "\(Int(allPages)! / rows)":"1"
             results["page_number"] = "\(start)"
             results["movies"] = packageMovies
             
